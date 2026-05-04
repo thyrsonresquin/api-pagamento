@@ -8,7 +8,7 @@ def create_payment_pix():
     data = request.get_json()
     return jsonify({"message": "pagamento pix criado com sucesso", "data": data}), 201
 
-# rota responsável por receber a confirmação de pagamento pix
+# rota responsável por receber a confirmação de pagamento pix (webhook)
 @app.route('/payments/pix/confirmation', methods=['POST'])
 def pix_confirmation():
     data = request.get_json()
