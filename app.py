@@ -1,11 +1,20 @@
 from flask import Flask, jsonify, request
+from repository.database import db
+from db_models.payment import Payment
 
 app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///payments.db'
+app.config['SECRET_KEY'] = 'SECRET_KEY_WEBSOCKET'
+
+db.init_app(app)
 
 # rota responsável por criar um pagamento pix
 @app.route('/payments/pix', methods=['POST'])
 def create_payment_pix():
     data = request.get_json()
+    payment = Payment(value=data['value'], paid=False, bank_payment_id=None, qr_code=None, expiration_data=None)
+    db.session.add(payment)
+    db.session.commit()
     return jsonify({"message": "pagamento pix criado com sucesso", "data": data}), 201
 
 # rota responsável por receber a confirmação de pagamento pix (webhook)
