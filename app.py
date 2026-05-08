@@ -1,6 +1,7 @@
 from flask import Flask, jsonify, request
 from repository.database import db
 from db_models.payment import Payment
+from datetime import datetime, timedelta
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///payments.db'
@@ -12,10 +13,25 @@ db.init_app(app)
 @app.route('/payments/pix', methods=['POST'])
 def create_payment_pix():
     data = request.get_json()
-    payment = Payment(value=data['value'], paid=False, bank_payment_id=None, qr_code=None, expiration_data=None)
-    db.session.add(payment)
+    
+    #validacoes
+    if 'value' not in data:
+        return jsonify({"message": "campo 'value' é obrigatório"}), 400
+    
+    # calculando a data de expiração do pagamento pix (30 minutos a partir do momento da criação)
+    expiration_date = datetime.now() + timedelta(minutes=30)
+
+    # criando um novo pagamento pix e salvando no banco de dados
+    new_payment = Payment(
+        value=data['value'],
+        expiration_date=expiration_date
+    )
+    db.session.add(new_payment)
     db.session.commit()
-    return jsonify({"message": "pagamento pix criado com sucesso", "data": data}), 201
+
+    return jsonify({"message": "pagamento pix criado com sucesso",
+                    'payment_id': new_payment.to_dict()['id'],
+                    "data": data, "expiration_date": expiration_date}), 201
 
 # rota responsável por receber a confirmação de pagamento pix (webhook)
 @app.route('/payments/pix/confirmation', methods=['POST'])
